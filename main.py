@@ -1,6 +1,7 @@
 import tweepy as tw
 import secret_keys as sk
 import sys
+from random import shuffle
 
 creds = sk.global_credentials['twitter']
 
@@ -12,28 +13,29 @@ client = tw.Client(bearer_token=creds['bearer_token'],
                    return_type=dict,
                    wait_on_rate_limit=True)
 
-target_users = input('Enter the target user(s) (separated by commas): ')
+me = client.get_me()['data']
 
-if len(target_users) > 0:
-    target_users = target_users.split(',')
-    target_users = [u.strip() for u in target_users]
-else:
+following = client.get_users_following(id=me['id'])['data']
+
+target_users = [u['id'] for u in following]
+shuffle(target_users)
+target_users = target_users[0]
+
+if len(target_users) < 1:
     print('No target users entered.')
     sys.exit('No target users entered.')
 
-targets = [dict(client.get_user(username=u))['data'] for u in target_users]
-
-print(f'{len(targets)} accounts to source users from')
+print(f'{len(target_users)} accounts to source users from')
 
 tweets = [
-    dict(client.get_users_tweets(id=u['id'], max_results=5))['data']
-    for u in targets
+    dict(client.get_users_tweets(id=id, max_results=5))['data']
+    for id in target_users
 ]
 
 print(f'{len(tweets)} tweets to target likers on')
 
 likers = [
-    client.get_liking_users(id=t['id'], max_results=10)
+    client.get_liking_users(id=t['id'], max_results=5)
     for sublist in tweets
     for t in sublist
 ]
@@ -71,7 +73,7 @@ reply_to_users = [
         text=
         f"Follow me here {name} you won't regret it! I have something special for you: https://t.co/mZR4yg3g6h",
         in_reply_to_tweet_id=t.get('meta')['newest_id'])
-    for (t, name) in zip(liker_tweets[:10], names[:10])
+    for (t, name) in zip(liker_tweets[:5], names[:5])
     if t.get('meta')['result_count'] > 0
 ]
 
