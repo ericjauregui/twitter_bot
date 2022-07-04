@@ -34,7 +34,7 @@ print(f'{len(tweets)} tweets to target likers on')
 
 likers = [
     client.get_liking_users(id=t['id'], max_results=10)
-    for sublist in tweets[:3]
+    for sublist in tweets
     for t in sublist
 ]
 
