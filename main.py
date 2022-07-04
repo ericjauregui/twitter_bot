@@ -4,11 +4,13 @@ import sys
 
 creds = sk.global_credentials['twitter']
 
-client = tw.Client(bearer_token=creds['token'],
-                   return_type='requests.Response',
+client = tw.Client(bearer_token=creds['bearer_token'],
+                   access_token=creds['access_token'],
+                   access_token_secret=creds['access_secret'],
+                   consumer_key=creds['consumer_key'],
+                   consumer_secret=creds['consumer_secret'],
+                   return_type=dict,
                    wait_on_rate_limit=True)
-
-api = tw.API(client)
 
 target_users = input('Enter the target user(s) (separated by commas): ')
 
@@ -19,13 +21,46 @@ else:
     print('No target users entered.')
     sys.exit('No target users entered.')
 
-targets = [api.get_user(screen_name=u) for u in target_users]
+targets = [client.get_user(username=u)['data'] for u in target_users]
 
-#TODO figure out how to get a users tweets and pull the tweet ids of most recent tweets
-tweets = []
+print(f'{len(targets)} accounts to target')
 
-#TODO get specific tweet's replies -> closest to the top of the thread
+tweets = [client.get_users_tweets(id=u['id'])['data'] for u in targets]
 
-#TODO like replies of tweets with x specification -> closest to the top of the thread
+print(f'{len(tweets)} tweets to target likers on')
 
-#TODO post OF link in replies or as reply to someone?
+likers = [
+    client.get_liking_users(id=t['id'], max_results=10)
+    for sublist in tweets
+    for t in sublist
+]
+
+print(f'{len(likers)} users to like tweets on')
+
+liker_tweets = [{
+    'tweets': client.get_users_tweets(id=u['id']),
+    'user_id': u['id']
+} for sublist in likers if sublist.get('data') is not None
+                for u in sublist.get('data')]
+
+print(f'{len(liker_tweets)} tweets found, will only like 3 tweets per user')
+
+like_tweets = [
+    client.like(tweet_id=t['id']) for sublist in liker_tweets
+    if sublist['tweets'].get('data') is not None
+    for t in sublist['tweets'].get('data')[:3]
+]
+
+print(f'{len(like_tweets)} tweets liked!')
+
+reply_to_users = [
+    client.create_tweet(
+        text=
+        "Follow me here you won't regret it! I have something special for you: https://t.co/mZR4yg3g6h",
+        in_reply_to_tweet_id=t['id'])
+    for sublist in liker_tweets[:5]
+    for t in sublist['tweets'].get('data')[0]
+    if sublist['tweets'].get('data') is not None
+]
+
+print(f'{len(reply_to_users)} tweets replied, all done!')
