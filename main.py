@@ -25,7 +25,9 @@ targets = [client.get_user(username=u)['data'] for u in target_users]
 
 print(f'{len(targets)} accounts to target')
 
-tweets = [client.get_users_tweets(id=u['id'])['data'] for u in targets]
+tweets = [
+    client.get_users_tweets(id=u['id'], max_results=3)['data'] for u in targets
+]
 
 print(f'{len(tweets)} tweets to target likers on')
 
@@ -38,7 +40,7 @@ likers = [
 print(f'{len(likers)} users to like tweets on')
 
 liker_tweets = [{
-    'tweets': client.get_users_tweets(id=u['id']),
+    'tweets': client.get_users_tweets(id=u['id'], max_results=3),
     'user_id': u['id']
 } for sublist in likers if sublist.get('data') is not None
                 for u in sublist.get('data')]
