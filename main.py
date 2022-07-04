@@ -21,36 +21,47 @@ else:
     print('No target users entered.')
     sys.exit('No target users entered.')
 
-targets = [client.get_user(username=u)['data'] for u in target_users]
+targets = [dict(client.get_user(username=u))['data'] for u in target_users]
 
-print(f'{len(targets)} accounts to target')
+print(f'{len(targets)} accounts to source users from')
 
 tweets = [
-    client.get_users_tweets(id=u['id'], max_results=3)['data'] for u in targets
+    dict(client.get_users_tweets(id=u['id'], max_results=5))['data']
+    for u in targets
 ]
 
 print(f'{len(tweets)} tweets to target likers on')
 
 likers = [
     client.get_liking_users(id=t['id'], max_results=10)
-    for sublist in tweets
+    for sublist in tweets[:3]
     for t in sublist
 ]
 
+if len(likers) < 1:
+    print('No likers found.')
+    sys.exit(
+        'No users found liking tweets of accounts listed. Try accounts with more followers'
+    )
+
 print(f'{len(likers)} users to like tweets on')
 
-liker_tweets = [{
-    'tweets': client.get_users_tweets(id=u['id'], max_results=3),
-    'user_id': u['id']
-} for sublist in likers if sublist.get('data') is not None
-                for u in sublist.get('data')]
+names = [
+    u['name'] for sublist in likers if dict(sublist).get('data') is not None
+    for u in sublist.get('data')
+]
 
-print(f'{len(liker_tweets)} tweets found, will only like 3 tweets per user')
+liker_tweets = [
+    client.get_users_tweets(id=u['id'], max_results=5) for sublist in likers
+    if dict(sublist).get('data') is not None for u in sublist.get('data')
+]
+
+print(f'{len(liker_tweets)} tweets found, will only like 1 tweet per user')
 
 like_tweets = [
-    client.like(tweet_id=t['id']) for sublist in liker_tweets
-    if sublist['tweets'].get('data') is not None
-    for t in sublist['tweets'].get('data')[:3]
+    client.like(tweet_id=t.get('meta')['newest_id'])
+    for t in liker_tweets
+    if t.get('meta')['result_count'] > 0
 ]
 
 print(f'{len(like_tweets)} tweets liked!')
@@ -58,11 +69,10 @@ print(f'{len(like_tweets)} tweets liked!')
 reply_to_users = [
     client.create_tweet(
         text=
-        "Follow me here you won't regret it! I have something special for you: https://t.co/mZR4yg3g6h",
-        in_reply_to_tweet_id=t['id'])
-    for sublist in liker_tweets[:5]
-    for t in sublist['tweets'].get('data')[0]
-    if sublist['tweets'].get('data') is not None
+        f"Follow me here {name} you won't regret it! I have something special for you: https://t.co/mZR4yg3g6h",
+        in_reply_to_tweet_id=t.get('meta')['newest_id'])
+    for (t, name) in zip(liker_tweets[:10], names[:10])
+    if t.get('meta')['result_count'] > 0
 ]
 
 print(f'{len(reply_to_users)} tweets replied, all done!')
