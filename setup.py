@@ -7,13 +7,15 @@ with open('launch_twitter.bat', 'w') as f:
         os.path.abspath(os.curdir) +
         r'\.venvs\twitter_bot\Scripts\activate.bat & twitter_bot\main.py')
 
+if not os.path.isdir(os.path.abspath(os.curdir) + '/.venvs'):
+    os.mkdir(os.path.abspath(os.curdir) + '/.venvs')
+
 os.chdir(r'.venvs')
 
-os.system('cmd /c python -m venv --system-site-packages twitter_bot2')
-print(
-    f'Created virtual environment: {os.path.abspath(os.curdir)}\\twitter_bot2')
+os.system('cmd /c python -m venv --system-site-packages twitter_bot')
+print(f'Created virtual environment: {os.path.abspath(os.curdir)}\\twitter_bot')
 
-os.system(r'cmd /c \twitter_bot2\Scripts\activate.bat')
+os.system(r'cmd /c \twitter_bot\Scripts\activate.bat')
 print('Activated virtual environment')
 print('Installing dependencies...')
 os.chdir(r'..\twitter_bot')
